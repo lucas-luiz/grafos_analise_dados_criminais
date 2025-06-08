@@ -1,5 +1,6 @@
+
 from preprocessamento import carregar_e_limpar_dados
-from grafo_crimes import construir_grafo_de_crimes, aplicar_louvain
+from grafo_crimes import construir_grafo_de_crimes, aplicar_leiden, verificar_scale_free
 from grafo_areas import gerar_pares_areas_similares, construir_grafo_geografico
 
 import matplotlib
@@ -9,26 +10,65 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
 import csv
+import random
+import os
 from community import modularity
 
 # === Etapa 1: carregamento do dataset ===
-df = carregar_e_limpar_dados(
-    r"C:\Users\jv_ar\OneDrive\Área de Trabalho\Grafos do Inferno\Travalho repositório\grafos_analise_dados_criminais\analise_crimes\dataset.csv"
-)
+caminho_dataset = os.path.join(os.path.dirname(__file__), "datasetReal.csv") #MUDAR ESTILO DE PLOTAGEM CASO ALTERAR O DATASET
+df = carregar_e_limpar_dados(caminho_dataset)
 df = df.head(1000)  # amostra reduzida
 
 # === Etapa 2: GRAFO DE CRIMES SIMILARES ===
 print("\nConstruindo grafo de crimes...")
-grafo_crimes = construir_grafo_de_crimes(df)
-particoes = aplicar_louvain(grafo_crimes)
+peso_min = 3  # parametrizável
+grafo_crimes = construir_grafo_de_crimes(df, peso_min=peso_min)
+particoes = aplicar_leiden(grafo_crimes)
 nx.set_node_attributes(grafo_crimes, particoes, "comunidade")
+
+# === Verificação Scale-Free ===
+print("\nGerando distribuição de grau (verificação scale-free)...")
+verificar_scale_free(grafo_crimes, save_fig=True, fig_name="distribuicao_grau.png")
+print("✔ Distribuição de grau salva como distribuicao_grau.png")
 
 # Visualização
 cores = [particoes[n] for n in grafo_crimes.nodes()]
-plt.figure("Comunidades de Crimes (grafo de similaridade)")
-nx.draw_spring(grafo_crimes, node_color=cores, node_size=20, with_labels=False)
-plt.title("Comunidades de crimes (grafo de similaridade)")
-plt.savefig("grafo_crimes.png", dpi=300)
+
+def plotar_grafo_total():
+    print("\\nVisualizando grafo completo (sem vértices isolados)...")
+
+    nodes_com_arestas = [n for n in grafo_crimes.nodes() if grafo_crimes.degree(n) > 0]
+    subgrafo = grafo_crimes.subgraph(nodes_com_arestas).copy()
+
+    plt.figure("Comunidades de Crimes (grafo completo, sem isolados)")
+    nx.draw_spring(subgrafo, node_color=[particoes[n] for n in subgrafo.nodes()], node_size=20, with_labels=False)
+    plt.title("Comunidades de crimes (grafo completo, sem vértices isolados)")
+    plt.savefig("grafo_crimes_sem_isolados.png", dpi=300)
+
+
+def plotar_subgrafo():
+    print("\\nVisualizando subgrafo (amostra de crimes, sem vértices isolados)...")
+    
+    # Filtrar nós com pelo menos 1 aresta
+    nodes_com_arestas = [n for n in grafo_crimes.nodes() if grafo_crimes.degree(n) > 0]
+
+    N_SUB = 1000
+    sub_nodes = random.sample(nodes_com_arestas, min(N_SUB, len(nodes_com_arestas)))
+    subgrafo = grafo_crimes.subgraph(sub_nodes).copy()
+    sub_particoes = {n: particoes[n] for n in subgrafo.nodes()}
+
+    plt.figure("Subgrafo de Crimes (amostra, sem isolados)")
+    pos = nx.spring_layout(subgrafo, seed=42)
+    nx.draw(
+        subgrafo, pos,
+        node_color=[sub_particoes[n] for n in subgrafo.nodes()],
+        node_size=20, with_labels=False
+    )
+    plt.title("Subgrafo de crimes (sem vértices isolados)")
+    plt.savefig("subgrafo_crimes_sem_isolados.png", dpi=300)
+
+#plotar_grafo_total()
+plotar_subgrafo()
 
 # === Etapa 3: GRAFO GEOGRÁFICO ENTRE ÁREAS ===
 print("\nConstruindo grafo de áreas LAPD...")
@@ -46,13 +86,12 @@ nx.draw_networkx_edge_labels(
 plt.title("Conexões entre Áreas (grafo geográfico)")
 plt.savefig("grafo_areas.png", dpi=300)
 
-# Mostrar os gráficos
+# Mostrar os grafos
 plt.show()
 
 # === Etapa 4: Exportar grafos para Gephi ===
 print("\nExportando grafos para Gephi (.gexf)...")
 
-# Corrigir atributos inválidos
 for node, attrs in grafo_crimes.nodes(data=True):
     for key in list(attrs.keys()):
         if isinstance(attrs[key], (pd.Timestamp, type)):
@@ -86,7 +125,7 @@ betweenness = nx.betweenness_centrality(grafo_crimes)
 nx.set_node_attributes(grafo_crimes, betweenness, "betweenness")
 
 mod = modularity(particoes, grafo_crimes)
-print(f"✔ Modularidade (Louvain): {mod:.4f}")
+print(f"✔ Modularidade (Leiden): {mod:.4f}")
 
 top_grau = sorted(grau_dict.items(), key=lambda x: x[1], reverse=True)[:5]
 print("\nTop 5 crimes com maior grau:")
