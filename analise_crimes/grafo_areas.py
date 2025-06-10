@@ -13,27 +13,43 @@ def construir_grafo_geografico(conexoes):
 
     return G
 
-# === Funções novas para grafos por ano ===
-
 def gerar_pares_areas_similares_por_ano(df):
     df["ANO"] = df["Date Rptd"].dt.year
     conexoes_por_ano = {}
+    contagem_por_area = defaultdict(int)
 
     for ano, df_ano in df.groupby("ANO"):
-        grupos = df_ano.groupby(["Mocodes", "Crm Cd Desc", df["Date Rptd"].dt.date])
+        grupos = df_ano.groupby(["Mocodes", "Crm Cd Desc"])
         conexoes = defaultdict(int)
 
         for _, grupo in grupos:
             areas = grupo["AREA NAME"]
+            for area in areas:
+                contagem_por_area[area] += 1
             for a1, a2 in combinations(sorted(areas), 2):
                 conexoes[(a1, a2)] += 1
 
         conexoes_por_ano[ano] = conexoes
 
-    return conexoes_por_ano
+    return conexoes_por_ano, contagem_por_area
+
+def gerar_pares_areas_similares_total(df):
+    grupos = df.groupby(["Mocodes", "Crm Cd Desc", df["Date Rptd"].dt.date])
+    conexoes = defaultdict(int)
+
+    for _, grupo in grupos:
+        areas = grupo["AREA NAME"]
+        for a1, a2 in combinations(sorted(areas), 2):
+            conexoes[(a1, a2)] += 1
+
+    return conexoes
 
 def construir_grafos_por_ano(conexoes_por_ano):
     grafos = {}
     for ano, conexoes in conexoes_por_ano.items():
         grafos[ano] = construir_grafo_geografico(conexoes)
     return grafos
+
+def construir_grafo_total(df):
+    conexoes_total = gerar_pares_areas_similares_total(df)
+    return construir_grafo_geografico(conexoes_total)
