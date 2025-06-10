@@ -71,12 +71,7 @@ for ano, grafo_nx in grafos_por_ano.items():
     for cid, peso_total in pesos_comunidade.items():
         print(f"      ➞ Comunidade {cid}: peso total interno = {peso_total}")
 
-# === Etapa 3: Contagem de registros por área ===
-#print("\n📊 Contagem de registros por área:")
-#for area, contagem in sorted(contagem_por_area.items(), key=lambda x: -x[1]):
-    #print(f"   {area}: {contagem} registros")
-
-# === Etapa 4: Grafo Total ===
+# === Etapa 3: Grafo Total ===
 grafo_total = construir_grafo_total(df)
 print("\n✔ Exportando visualização do grafo total...")
 
@@ -131,3 +126,9 @@ for cid in pesos_comunidade:
     total_registros = registros_comunidade.get(cid, 1)
     proporcao = peso_total / total_registros if total_registros > 0 else 0
     print(f"      ➞ Comunidade {cid}: peso total interno = {peso_total}, registros = {total_registros}, proporção = {proporcao:.4f}")
+
+# === Etapa 4: Contagem de registros por área ===
+print("\n📊 Contagem de registros por área (com grau no grafo total):")
+for area, contagem in sorted(contagem_por_area.items(), key=lambda x: -x[1]):
+    grau = grafo_total.degree(area, weight='weight')
+    print(f"   {area}: {contagem} registros, grau: {grau}")
