@@ -3,4 +3,3 @@ matplotlib
 networkx
 python-igraph
 leidenalg
-tqdm
