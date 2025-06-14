@@ -3,6 +3,7 @@ import leidenalg
 import igraph as ig
 from collections import defaultdict
 from itertools import combinations
+import numpy as np
 
 
 # ============================== Construir Grafo ==============================
@@ -115,3 +116,33 @@ def aplicar_leiden_e_analisar(grafo_nx, contagem_por_area):
                                   "dados_area": dados_area}
 
     return particao, dados_comunidades
+
+
+def layout_por_comunidade(grafo, particao, escala_comunidade=5, escala_local=1):
+    comunidades = {}
+    for node, cid in zip(grafo.nodes, particao.membership):
+        comunidades.setdefault(cid, []).append(node)
+
+    # Layout das comunidades (meta-grafo)
+    meta_grafo = nx.Graph()
+    for cid in comunidades:
+        meta_grafo.add_node(cid)
+    for u, v in grafo.edges:
+        cu = particao.membership[list(grafo.nodes).index(u)]
+        cv = particao.membership[list(grafo.nodes).index(v)]
+        if cu != cv:
+            meta_grafo.add_edge(cu, cv)
+
+    pos_comunidades = nx.spring_layout(meta_grafo, scale=escala_comunidade, seed=42)
+
+    # Layout dentro de cada comunidade
+    pos_final = {}
+    for cid, nodes in comunidades.items():
+        subgrafo = grafo.subgraph(nodes)
+        centro = pos_comunidades[cid]
+        pos_local = nx.spring_layout(subgrafo, scale=escala_local, seed=42)
+        for n in subgrafo.nodes:
+            offset = np.array(pos_local[n])
+            pos_final[n] = centro + offset  # posição global
+
+    return pos_final
