@@ -26,7 +26,7 @@ def construir_grafos_por_ano(conexoes_por_ano):
     return grafos
 
 def gerar_pares_por_ano(df):
-    df["ANO"] = df["Date Rptd"].dt.year
+    df["ANO"] = df["DATE OCC"].dt.year
     conexoes_por_ano = {}
     contagem_por_ano = {}
     contagem_por_ano["total"] = defaultdict(int)
@@ -51,7 +51,7 @@ def gerar_pares_por_ano(df):
 
 # ============================== Tratar Grafo Total ==============================
 def gerar_pares_total(df):
-    grupos = df.groupby(["Mocodes", "Crm Cd Desc", df["Date Rptd"].dt.date])
+    grupos = df.groupby(["Mocodes", "Crm Cd Desc", df["DATE OCC"].dt.date])
     conexoes_total = defaultdict(int)
 
     for _, grupo in grupos:
