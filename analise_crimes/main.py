@@ -16,7 +16,12 @@ print("\nConstruindo grafos de áreas LAPD por ano...")
 grafos_por_ano, contagem_por_ano = gerar_pares_por_ano(df)
 
 for ano, grafo_areas in grafos_por_ano.items():
-    print(f"\n✔ Exportando visualização ANTES do Leiden para o ano {ano}...")
+    # Mostrar grau ponderado de cada nóA
+    print(f"\nGrau ponderado dos nós no grafo do ano {ano}:")
+    for no in grafo_areas.nodes():
+        grau_ponderado = grafo_areas.degree(no, weight='weight')
+        print(f"    {no}: {grau_ponderado}")
+    print(f"\n Exportando visualização ANTES do Leiden para o ano {ano}...")
     plt.figure(figsize=(8, 6))
     pos_padrao = nx.spring_layout(grafo_areas, seed=42)
     nx.draw(grafo_areas, pos_padrao, with_labels=True, node_color='lightblue', node_size=800, font_size=8)
@@ -30,13 +35,13 @@ for ano, grafo_areas in grafos_por_ano.items():
     plt.close()
 
     # Aplicar Leiden
-    print(f"\n🔍 Processando comunidades do ano {ano}...")
+    print(f"\n Processando comunidades do ano {ano}...")
     particao, dados_comunidades = aplicar_leiden_e_analisar(grafo_areas, contagem_por_ano[ano])
-    print(f"   ➞ Modularidade: {particao.modularity:.4f}")
-    print(f"   ➞ Número de comunidades: {len(particao)}")
+    print(f"    Modularidade: {particao.modularity:.4f}")
+    print(f"    Número de comunidades: {len(particao)}")
 
     for cid, comunidade in dados_comunidades.items():
-        print(f"\n      ➞ Comunidade {cid}: peso total interno = {comunidade['peso_total']}, registros = {comunidade['total_registros']}, proporção = {comunidade['proporcao']:.4f}")
+        print(f"\n       Comunidade {cid}: peso total interno = {comunidade['peso_total']}, registros = {comunidade['total_registros']}, proporção = {comunidade['proporcao']:.4f}")
         for area_name, areas in comunidade["dados_area"].items():
             print(f"            - {area_name}: registros = {areas['registros_area']}, grau ponderado = {areas['grau_ponderado']}")
 
@@ -45,7 +50,7 @@ for ano, grafo_areas in grafos_por_ano.items():
     cores = [comunidades[node] for node in grafo_areas.nodes]
     pos_comunidades = layout_por_comunidade(grafo_areas, particao)
 
-    print(f"✔ Exportando visualização DEPOIS do Leiden para o ano {ano}...")
+    print(f" Exportando visualização DEPOIS do Leiden para o ano {ano}...")
     plt.figure(figsize=(8, 6))
     nx.draw(
         grafo_areas, pos_comunidades,
@@ -69,8 +74,15 @@ for ano, grafo_areas in grafos_por_ano.items():
 print("\nConstruindo grafo total...")
 grafo_total = gerar_pares_total(df)
 
+# Mostrar grau ponderado de cada nó no grafo total
+print("\nGrau ponderado dos nós no grafo TOTAL:")
+for no in grafo_total.nodes():
+    grau_ponderado = grafo_total.degree(no, weight='weight')
+    print(f"    {no}: {grau_ponderado}")
+    
 # Visualização ANTES
-print("\n✔ Exportando visualização ANTES do Leiden para o grafo total...")
+
+print("\n Exportando visualização ANTES do Leiden para o grafo total...")
 plt.figure(figsize=(10, 8))
 pos_total = nx.spring_layout(grafo_total, seed=42)
 nx.draw(grafo_total, pos_total, with_labels=True, node_color='lightblue', node_size=800, font_size=8)
@@ -84,13 +96,13 @@ plt.savefig("grafo_areas_total_antes.png", dpi=300)
 plt.close()
 
 # Aplicar Leiden
-print(f"\n🔍 Processando comunidades do grafo total...")
+print(f"\n Processando comunidades do grafo total...")
 particao_total, dados_comunidades = aplicar_leiden_e_analisar(grafo_total, contagem_por_ano["total"])
-print(f"   ➞ Modularidade: {particao_total.modularity:.4f}")
-print(f"   ➞ Número de comunidades: {len(particao_total)}")
+print(f"    Modularidade: {particao_total.modularity:.4f}")
+print(f"    Número de comunidades: {len(particao_total)}")
 
 for cid, comunidade in dados_comunidades.items():
-    print(f"\n      ➞ Comunidade {cid}: peso total interno = {comunidade['peso_total']}, registros = {comunidade['total_registros']}, proporção = {comunidade['proporcao']:.4f}")
+    print(f"\n       Comunidade {cid}: peso total interno = {comunidade['peso_total']}, registros = {comunidade['total_registros']}, proporção = {comunidade['proporcao']:.4f}")
     for area_name, areas in comunidade["dados_area"].items():
         print(f"            - {area_name}: registros = {areas['registros_area']}, grau ponderado = {areas['grau_ponderado']}")
 
@@ -99,7 +111,7 @@ comunidades_total = {name: cid for name, cid in zip(grafo_total.nodes, particao_
 cores_total = [comunidades_total[node] for node in grafo_total.nodes]
 pos_comunidades_total = layout_por_comunidade(grafo_total, particao_total)
 
-print("✔ Exportando visualização DEPOIS do Leiden para o grafo total...")
+print(" Exportando visualização DEPOIS do Leiden para o grafo total...")
 plt.figure(figsize=(10, 8))
 nx.draw(
     grafo_total, pos_comunidades_total,
